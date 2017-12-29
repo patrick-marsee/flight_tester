@@ -33,7 +33,7 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
     public float roll { get; set; }
     public float thrust { get; set; }
     public float dragC { get; set; } // drag coefficient, for the benefit of AI pilots.
-    public float tas { get { return velocity.z; } } // true air speed
+	public float tas { get { return Mathf.Sqrt(velocity.z * velocity.z + velocity.y * velocity.y) * Mathf.Sign(velocity.z); } } // true air speed
     public float ias { get { return tas * Mathf.Sqrt(atm.Density(transform.position.y, true)); } } // indicated airspeed
     public bool isControlable { get; set; }
 

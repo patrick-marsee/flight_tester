@@ -7,7 +7,10 @@ public class SimpleLiftingBody : ALiftingBody {
 
     [SerializeField]
     private Vector3 controlResponse;
-    [SerializeField]
+	[SerializeField]
+	private Vector3 controlSpeed; // How quickly controls take effect, in %/s. 0 means immediate controls.
+								// recommended: 0 or > 4 for aerobatics, 0<x<2 for heavy aircraft, > 2 for lighter aircraft
+	[SerializeField]
     private float dragCoeff;
     // Wing stuff
     [SerializeField]
@@ -31,6 +34,7 @@ public class SimpleLiftingBody : ALiftingBody {
 
     private Airfoil horizAirfoil, vertAirfoil; // approximation of all horizontal surfaces' airfoils.
     private float invCruiseSpeed;
+	private Vector3 control; // The actual control being applied, after control speed
 
     // Use this for initialization
     override protected void Start()
@@ -94,6 +98,14 @@ public class SimpleLiftingBody : ALiftingBody {
 		
 	}
 
+	private Vector3 TransformR(Vector3 R) // transform lift and drag into the same basis as velocity
+	{
+		Vector3 row1 = new Vector3 (Mathf.Cos (sideslip), Mathf.Sin (sideslip) * Mathf.Sin (AoA), Mathf.Sin (sideslip) * Mathf.Cos (AoA));
+		Vector3 row2 = new Vector3 (0f, Mathf.Cos (AoA), -Mathf.Sin (AoA));
+		Vector3 row3 = new Vector3 (-Mathf.Sin (sideslip), Mathf.Cos (sideslip) * Mathf.Sin (AoA), Mathf.Cos (sideslip) * Mathf.Cos (AoA));
+		return new Vector3 (Vector3.Dot (row1, R), Vector3.Dot (row2, R), Vector3.Dot (row3, R)); 
+	}
+
     private void inertia()
     {
         velocity = transform.InverseTransformDirection(prevVel);
@@ -106,15 +118,41 @@ public class SimpleLiftingBody : ALiftingBody {
         float vertLiftPerCoeff = velocity.sqrMagnitude * vertWingArea * atm.Density(transform.position.y, true) * 0.5f / mass;
         float degAoA = AoA * Mathf.Rad2Deg;
         float degSideslip = sideslip * Mathf.Rad2Deg;
-        acceleration += new Vector3(-vertAirfoil.getLift(degSideslip) * vertLiftPerCoeff, horizAirfoil.getLift(degAoA) * horizLiftPerCoeff, 0f);
+		acceleration += TransformR(new Vector3(-vertAirfoil.getLift(degSideslip) * vertLiftPerCoeff, horizAirfoil.getLift(degAoA) * horizLiftPerCoeff, 0f));
         //print(degAoA);
         angularVelocity = new Vector3(horizAirfoil.getMoment(degAoA) * horizLiftPerCoeff, vertAirfoil.getMoment(degSideslip) * vertLiftPerCoeff, 0f);
         float controlCoeff = ias * invCruiseSpeed * Mathf.Max(0.5f, Mathf.Cos(AoA * 2));
-        angularVelocity += new Vector3(pitch * controlResponse.x * Mathf.Sqrt(controlCoeff), yaw * controlResponse.y * Mathf.Sqrt(controlCoeff), roll * controlResponse.z * Mathf.Sqrt(controlCoeff));
+
+		if (controlSpeed.x > 0) {
+			if (control.x < pitch) // figure out pitch control
+				control.x += Mathf.Min (controlSpeed.x * Time.fixedDeltaTime, pitch - control.x);
+			else if (control.x > pitch)
+				control.x -= Mathf.Min (controlSpeed.x * Time.fixedDeltaTime, control.x - pitch);
+		} else
+			control.x = pitch;
+
+		if (controlSpeed.y > 0) {
+			if (control.y < yaw) // figure out yaw control
+				control.y += Mathf.Min (controlSpeed.y * Time.fixedDeltaTime, yaw - control.y);
+			else if (control.y > yaw)
+				control.y -= Mathf.Min (controlSpeed.y * Time.fixedDeltaTime, control.y - yaw);
+		} else
+			control.y = yaw;
+
+		if (controlSpeed.z > 0) {
+			if (control.z < roll) // figure out roll control
+				control.z += Mathf.Min (controlSpeed.z * Time.fixedDeltaTime, roll - control.z);
+			else if (control.z > roll)
+				control.z -= Mathf.Min (controlSpeed.z * Time.fixedDeltaTime, control.z - roll);
+		} else
+			control.z = roll;
+
+		angularVelocity += Vector3.Scale (control, controlResponse) * Mathf.Sqrt (controlCoeff);
+        // angularVelocity += new Vector3(pitch * controlResponse.x * Mathf.Sqrt(controlCoeff), yaw * controlResponse.y * Mathf.Sqrt(controlCoeff), roll * controlResponse.z * Mathf.Sqrt(controlCoeff));
     }
 
     private void drag()
     {
-        acceleration += Vector3.back * tas * Mathf.Abs(tas) * dragCoeff * atm.Density(transform.position.y, true) * 0.5f * horizWingArea / mass;
+		acceleration += Vector3.back * tas * Mathf.Abs(tas) * dragCoeff * atm.Density(transform.position.y, true) * 0.5f * horizWingArea * vertWingArea / mass;
     }
 }
