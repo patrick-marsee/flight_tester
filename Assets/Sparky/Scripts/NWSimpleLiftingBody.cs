@@ -1,18 +1,21 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SimpleLiftingBody : ALiftingBody {
+public class NWSimpleLiftingBody : ANetworkLiftingBody {
 
     [SerializeField]
     private Vector3 controlResponse;
 	[SerializeField]
 	private Vector3 controlSpeed; // How quickly controls take effect, in %/s. 0 means immediate controls.
-								// recommended: 0 or > 4 for aerobatics, 0<x<2 for heavy aircraft, > 2 for lighter aircraft
-	[SerializeField]
-    private float dragCoeff;
+                                  // recommended: 0 or > 4 for aerobatics, 0<x<2 for heavy aircraft, > 2 for lighter aircraft
+    [SerializeField]
+    private float bodyDragCoeff;
+    [SerializeField]
+    private float frontalArea;
     // Wing stuff
+    [SerializeField]
+    private float wingDragCoeff;
     [SerializeField]
     private float horizWingArea; // recommended: main wing area + 1/2 horiz stab area
     [SerializeField]
@@ -36,11 +39,12 @@ public class SimpleLiftingBody : ALiftingBody {
     private float invCruiseSpeed;
 	private Vector3 control; // The actual control being applied, after control speed
 
+
     // Use this for initialization
     override protected void Start()
     {
         base.Start();
-        dragC = dragCoeff;
+        dragC = bodyDragCoeff + wingDragCoeff;
         //print(atm.Density(cruiseAlt, false));
 
         invCruiseSpeed = 1 / cruiseSpeed;
@@ -63,14 +67,14 @@ public class SimpleLiftingBody : ALiftingBody {
         stallAngle = (2 * mass * -Physics.gravity.y / (atm.Density(cruiseAlt, true) * stallSpeed * stallSpeed * horizWingArea) - liftLevel) * Mathf.PI / (2 * liftSlope); // (2 * m * g / (p * V^2 * S) - L) * pi / (2 * l) = s
         print("stallAngle = " + stallAngle);
 
-        horizAirfoil = new Airfoil(liftLevel, liftSlope, stallAngle, -moment.x, stability.x, 0.2f);
+        horizAirfoil = new Airfoil(liftLevel, liftSlope, stallAngle, -moment.x, stability.x, wingDragCoeff);
 
         // Stats for vertical AF
         liftSlope = Mathf.PI * Mathf.PI / 90 * (1 - Mathf.Exp(-vertAspectRatio));
 
         stallAngle = Mathf.PI / (2 * liftSlope);
 
-        vertAirfoil = new Airfoil(0f, liftSlope, stallAngle, moment.y, stability.y, 0.2f);
+        vertAirfoil = new Airfoil(0f, liftSlope, stallAngle, moment.y, stability.y, wingDragCoeff);
     }
 
     void FixedUpdate()
@@ -80,9 +84,9 @@ public class SimpleLiftingBody : ALiftingBody {
         acceleration = transform.InverseTransformDirection(Physics.gravity);
         acceleration += Vector3.forward * thrust / mass;
         //Vector3 lift = Vector3.up * wings.getLift(AoA, velocity.z) * Time.fixedDeltaTime;
-        lift();
+        lift(); //lift, drag, and moment
         //keel();
-        drag();
+        //drag();
         velocity += acceleration * Time.fixedDeltaTime;
         angularVelocity += angularAcceleration * Time.fixedDeltaTime;
         //print(velocity);
@@ -93,10 +97,16 @@ public class SimpleLiftingBody : ALiftingBody {
     }
 
     // Update is called once per frame
-    void Update()
-	{
-		
-	}
+    //void Update()
+    //{
+
+    //}
+
+    private void inertia()
+    {
+        velocity = transform.InverseTransformDirection(prevVel);
+        //acceleration = velocity - prevVel;
+    }
 
 	private Vector3 TransformR(Vector3 R) // transform lift and drag into the same basis as velocity
 	{
@@ -106,19 +116,17 @@ public class SimpleLiftingBody : ALiftingBody {
 		return new Vector3 (Vector3.Dot (row1, R), Vector3.Dot (row2, R), Vector3.Dot (row3, R)); 
 	}
 
-    private void inertia()
-    {
-        velocity = transform.InverseTransformDirection(prevVel);
-        //acceleration = velocity - prevVel;
-    }
-
     private void lift() // different from LiftingBody.lift, in that it is much simpler
     {
         float horizLiftPerCoeff = velocity.sqrMagnitude * horizWingArea * atm.Density(transform.position.y, true) * 0.5f / mass;
         float vertLiftPerCoeff = velocity.sqrMagnitude * vertWingArea * atm.Density(transform.position.y, true) * 0.5f / mass;
         float degAoA = AoA * Mathf.Rad2Deg;
         float degSideslip = sideslip * Mathf.Rad2Deg;
-		acceleration += TransformR(new Vector3(-vertAirfoil.getLift(degSideslip) * vertLiftPerCoeff, horizAirfoil.getLift(degAoA) * horizLiftPerCoeff, 0f));
+        float horizDrag = horizAirfoil.getDrag(degAoA) * horizWingArea;
+        float vertDrag = vertAirfoil.getDrag(degSideslip) * vertWingArea;
+        float totalDrag = indicatedVelocity.sqrMagnitude * atm.Density(transform.position.y, true) * 0.5f / mass * (horizDrag + vertDrag + bodyDragCoeff * frontalArea);
+        Vector3 relativeAccel = new Vector3(-vertAirfoil.getLift(degSideslip) * vertLiftPerCoeff, horizAirfoil.getLift(degAoA) * horizLiftPerCoeff, -totalDrag);
+        acceleration += TransformR(relativeAccel);
         //print(degAoA);
         angularVelocity = new Vector3(horizAirfoil.getMoment(degAoA) * horizLiftPerCoeff, vertAirfoil.getMoment(degSideslip) * vertLiftPerCoeff, 0f);
         float controlCoeff = ias * invCruiseSpeed * Mathf.Max(0.5f, Mathf.Cos(AoA * 2));
@@ -148,11 +156,17 @@ public class SimpleLiftingBody : ALiftingBody {
 			control.z = roll;
 
 		angularVelocity += Vector3.Scale (control, controlResponse) * Mathf.Sqrt (controlCoeff);
-        // angularVelocity += new Vector3(pitch * controlResponse.x * Mathf.Sqrt(controlCoeff), yaw * controlResponse.y * Mathf.Sqrt(controlCoeff), roll * controlResponse.z * Mathf.Sqrt(controlCoeff));
+
+        //angularVelocity += new Vector3(pitch * controlResponse.x * Mathf.Sqrt(controlCoeff), yaw * controlResponse.y * Mathf.Sqrt(controlCoeff), roll * controlResponse.z * Mathf.Sqrt(controlCoeff));
     }
 
-    private void drag()
+    private void drag() // depricated
     {
-		acceleration += Vector3.back * tas * Mathf.Abs(tas) * dragCoeff * atm.Density(transform.position.y, true) * 0.5f * horizWingArea * vertWingArea / mass;
+        float degAoA = AoA * Mathf.Rad2Deg;
+        float degSideslip = sideslip * Mathf.Rad2Deg;
+        float horizDrag = horizAirfoil.getDrag(degAoA) * horizWingArea;
+        float vertDrag = vertAirfoil.getDrag(degSideslip) * vertWingArea;
+        float totalDrag = indicatedVelocity.sqrMagnitude * atm.Density(transform.position.y, true) * 0.5f / mass * (horizDrag + vertDrag + bodyDragCoeff * frontalArea);
+        acceleration += TransformR(Vector3.back * totalDrag);
     }
 }

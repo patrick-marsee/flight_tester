@@ -22,6 +22,8 @@ public interface ILiftingBody {
     float ias { get; } // indicated airspeed
     bool isControlable { get; set; }
 
+    void SetPosition(Vector3 pos, Quaternion rot, float speed);
+
     // Use this for initialization
     //void Start()
     //{

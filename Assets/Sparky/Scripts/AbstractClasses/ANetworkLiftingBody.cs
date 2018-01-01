@@ -126,4 +126,13 @@ public abstract class ANetworkLiftingBody : NetworkBehaviour, ILiftingBody {
         thrust = lbp.thrust;
         CmdSyncLB(lbp);
     }
+
+    public void SetPosition(Vector3 pos, Quaternion rot, float speed)
+    {
+        transform.position = pos;
+        transform.rotation = rot;
+        velocity = new Vector3(0f, 0f, speed);
+        prevVel = transform.forward * speed;
+        angularVelocity = Vector3.zero;
+    }
 }

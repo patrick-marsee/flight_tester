@@ -368,7 +368,7 @@ public class Wing
 public struct Airfoil
 {
     const float LIFTSLOPE = Mathf.PI * Mathf.PI / 90f; // in units per degree; approx. 0.11
-    const float DRAGSLOPE = 9.949031f;
+    const float DRAGSLOPE = 1.25f;
     //[SerializeField]
     //private float liftCoef; // depricated
     [SerializeField]

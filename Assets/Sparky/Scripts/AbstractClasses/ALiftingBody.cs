@@ -45,15 +45,24 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
         atm = FindObjectOfType<Atmosphere>();
         velocity = new Vector3(0f, 0f, startSpeed); // TO SCALE ALREADY
         angularVelocity = new Vector3(0f, 0f, 0f);
-        prevVel = new Vector3(0f, 0f, startSpeed);
+        prevVel = transform.forward * startSpeed;
         //isStallSpeed = 1 / (stallSpeed * stallSpeed);
         iScale = 1 / atm.Scale;
         if (rBody != null && mass == 0) mass = rBody.mass;
     }
-	
-	// Update is called once per frame
-	//void Update()
-	//{
-		
-	//}
+
+    public void SetPosition(Vector3 pos, Quaternion rot, float speed)
+    {
+        transform.position = pos;
+        transform.rotation = rot;
+        velocity = new Vector3(0f, 0f, speed);
+        prevVel = transform.forward * speed;
+        angularVelocity = Vector3.zero;
+    }
+
+    // Update is called once per frame
+    //void Update()
+    //{
+
+    //}
 }
