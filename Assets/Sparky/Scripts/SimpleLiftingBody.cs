@@ -126,10 +126,13 @@ public class SimpleLiftingBody : ALiftingBody {
         float vertDrag = vertAirfoil.getDrag(degSideslip) * vertWingArea;
         float totalDrag = indicatedVelocity.sqrMagnitude * atm.Density(transform.position.y, true) * 0.5f / mass * (horizDrag + vertDrag + bodyDragCoeff * frontalArea);
         Vector3 relativeAccel = new Vector3(-vertAirfoil.getLift(degSideslip) * vertLiftPerCoeff, horizAirfoil.getLift(degAoA) * horizLiftPerCoeff, -totalDrag);
+        //print("relativeAccel = " + relativeAccel.ToString());
+        //print("acceleration (before) = " + acceleration.ToString());
         acceleration += TransformR(relativeAccel);
+        //print("acceleration (after) = " + acceleration.ToString());
         //print(degAoA);
         angularVelocity = new Vector3(horizAirfoil.getMoment(degAoA) * horizLiftPerCoeff, vertAirfoil.getMoment(degSideslip) * vertLiftPerCoeff, 0f);
-        float controlCoeff = ias * invCruiseSpeed * Mathf.Max(0.5f, Mathf.Cos(AoA * 2));
+        float controlCoeff = ias * invCruiseSpeed * Mathf.Max(0.5f, Mathf.Cos(AoA * 2)); // possible source of backwards flying bug: if ias is negative, controlCoeff is negative.
 
 		if (controlSpeed.x > 0) {
 			if (control.x < pitch) // figure out pitch control
@@ -155,7 +158,7 @@ public class SimpleLiftingBody : ALiftingBody {
 		} else
 			control.z = roll;
 
-		angularVelocity += Vector3.Scale (control, controlResponse) * Mathf.Sqrt (controlCoeff);
+		angularVelocity += Vector3.Scale (control, controlResponse) * Mathf.Sqrt (Mathf.Abs(controlCoeff)) * Mathf.Sign(controlCoeff); // If controlCoeff is negative, sqrt(controlCoeff) is NaN.
         // angularVelocity += new Vector3(pitch * controlResponse.x * Mathf.Sqrt(controlCoeff), yaw * controlResponse.y * Mathf.Sqrt(controlCoeff), roll * controlResponse.z * Mathf.Sqrt(controlCoeff));
     }
 
