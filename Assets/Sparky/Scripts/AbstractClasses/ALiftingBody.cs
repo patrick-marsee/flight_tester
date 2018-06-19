@@ -16,7 +16,7 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
 
     protected Rigidbody rBody;
     protected Atmosphere atm;
-    protected Vector3 prevVel;
+    //protected Vector3 prevVel;
     protected float iScale; // inverse scale (Note: only scale when the transform is being used!)
 
     public Vector3 velocity { get { return Velocity; } set { Velocity = value; } } // meters per second
@@ -45,7 +45,7 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
         atm = FindObjectOfType<Atmosphere>();
         velocity = new Vector3(0f, 0f, startSpeed); // TO SCALE ALREADY
         angularVelocity = new Vector3(0f, 0f, 0f);
-        prevVel = transform.forward * startSpeed;
+        //prevVel = transform.forward * startSpeed;
         //isStallSpeed = 1 / (stallSpeed * stallSpeed);
         iScale = 1 / atm.Scale;
         if (rBody != null && mass == 0) mass = rBody.mass;
@@ -56,7 +56,7 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
         transform.position = pos;
         transform.rotation = rot;
         velocity = new Vector3(0f, 0f, speed);
-        prevVel = transform.forward * speed;
+        //prevVel = transform.forward * speed;
         angularVelocity = Vector3.zero;
     }
 

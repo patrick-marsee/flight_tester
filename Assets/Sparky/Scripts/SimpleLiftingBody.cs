@@ -79,7 +79,7 @@ public class SimpleLiftingBody : ALiftingBody {
 
     void FixedUpdate()
     {
-        inertia();
+        //inertia();
         //Vector3 gravity = transform.InverseTransformDirection(Physics.gravity);
         acceleration = transform.InverseTransformDirection(Physics.gravity);
         acceleration += Vector3.forward * thrust / mass;
@@ -91,8 +91,9 @@ public class SimpleLiftingBody : ALiftingBody {
         angularVelocity += angularAcceleration * Time.fixedDeltaTime;
         //print(velocity);
         transform.Translate(velocity * Time.fixedDeltaTime * iScale);
-        prevVel = transform.TransformDirection(velocity);
+        Vector3 prevVel = transform.TransformDirection(velocity);
         transform.Rotate(angularVelocity * Time.fixedDeltaTime);
+        velocity = transform.InverseTransformDirection(prevVel);
         //transform.Rotate(new Vector3(pitch * controlResponse.x * Mathf.Sqrt(ias), yaw * controlResponse.y * Mathf.Sqrt(ias), roll * controlResponse.z * Mathf.Sqrt(ias)) * Time.fixedDeltaTime);
     }
 
@@ -110,11 +111,11 @@ public class SimpleLiftingBody : ALiftingBody {
 		return new Vector3 (Vector3.Dot (row1, R), Vector3.Dot (row2, R), Vector3.Dot (row3, R)); 
 	}
 
-    private void inertia()
-    {
-        velocity = transform.InverseTransformDirection(prevVel);
-        //acceleration = velocity - prevVel;
-    }
+    //private void inertia()
+    //{
+    //    velocity = transform.InverseTransformDirection(prevVel);
+    //    //acceleration = velocity - prevVel;
+    //}
 
     private void lift() // different from LiftingBody.lift, in that it is much simpler
     {
