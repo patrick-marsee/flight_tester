@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿/*using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -169,4 +169,4 @@ public class NWSimpleLiftingBody : ANetworkLiftingBody {
         float totalDrag = indicatedVelocity.sqrMagnitude * atm.Density(transform.position.y, true) * 0.5f / mass * (horizDrag + vertDrag + bodyDragCoeff * frontalArea);
         acceleration += TransformR(Vector3.back * totalDrag);
     }
-}
+}*/

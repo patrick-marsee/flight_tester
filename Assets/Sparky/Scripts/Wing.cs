@@ -27,8 +27,8 @@ public class Wing
 
     [SerializeField]
     private bool Symmetrical = true; // Is it on both sides? (usually true, false for single vert stabs)
-    [SerializeField]
-    private bool OnLeft = true;
+    //[SerializeField]
+    //private bool OnLeft = true;
     [SerializeField]
     private bool PitchIncidence; // true if the whole wing moves, false otherwise.
     [SerializeField]
@@ -49,8 +49,8 @@ public class Wing
     private float Control; // how much incidence to simulate, if *Incidence is true. Otherwise, this is lift to add * 10.
     [SerializeField]
     private Vector3 Position; // position of Aerodynamic Center when static.
-    [SerializeField]
-    private float StaticAC = 0.25f; // position of Aerodynamic Center when static, in percentage of wing cord (only used for subsonic flight)
+    //[SerializeField]
+    //private float StaticAC = 0.25f; // position of Aerodynamic Center when static, in percentage of wing cord (only used for subsonic flight)
     [SerializeField]
     private float Dihedral; // in degrees; usually: -5 to 5 for main wings, 0 for horiz stabs, 90 for most vert stabs, 60 for vert stabs on stealth planes
     [SerializeField]
@@ -112,13 +112,13 @@ public class Wing
 
     public Airfoil getActiveAirfoil() { return ActiveAirfoil; }
 
-    public Vector3 getActiveAC(float speed) // depricated; use aerodynamicCenter instead.
+    /*public Vector3 getActiveAC(float speed) // depricated; use aerodynamicCenter instead.
     {
         float cord = (RootCord - TipCord) * Center / 2 + TipCord;
         float setBack = Mathf.Tan(Sweep) * Span / (Center * 2);
         Vector3 ret;
         return Vector3.zero;
-    }
+    }*/
 
     public float getLift(float angle, float speed) // depricated
     {
