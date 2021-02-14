@@ -121,6 +121,10 @@ public class SimpleLiftingBody : ALiftingBody {
         {
             fixedAcceleration.x = -velocity.x / Time.fixedDeltaTime;
         }
+        if ((velocity.y + acceleration.y * Time.fixedDeltaTime) * velocity.y < 0.0f)
+        {
+            fixedAcceleration.y = -velocity.y / Time.fixedDeltaTime;
+        }
         acceleration += fixedAcceleration;
         angularVelocity = new Vector3(horizAirfoil.getMoment(degAoA) * horizLiftPerCoeff, vertAirfoil.getMoment(degSideslip) * vertLiftPerCoeff, 0f);
         angularVelocity += new Vector3(-moment * Mathf.Cos(Vector3.Angle(Physics.gravity, transform.up) * Mathf.Deg2Rad) * horizLiftPerCoeff, 0.0f, 0.0f);

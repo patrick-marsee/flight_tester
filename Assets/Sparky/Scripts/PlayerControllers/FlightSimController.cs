@@ -3,38 +3,31 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class FlightSimController : APlayerController {
+    
+    const float TRIM_INTENSITY = 1.0f / 1024.0f;
 
-    private bool startAutoTrim
+    private bool startAutoTrim()
     {
-        get
-        {
             //if (Mathf.Abs(pitch) < 0.1f) print("pitch == " + pitch);
             //if (Mathf.Abs(yaw) < 0.1f) print("yaw == " + yaw);
             //if (Mathf.Abs(roll) < 0.1f) print("roll == " + roll);
             //if (autoTrimIsOn == true) print("autoTrimIsOn == true");
-            return Mathf.Abs(pitch) <= 0.1f && Mathf.Abs(yaw) <= 0.1f && Mathf.Abs(roll) <= 0.1f && !autoTrimIsOn;
-        }
+            return !stopAutoTrim() && !autoTrimIsOn;
     }
 
-    private bool stopAutoTrim
+    private bool stopAutoTrim()
     {
-        get
-        {
-            return (Input.GetButtonDown(pitchAxis) || Input.GetButtonDown(yawAxis) || Input.GetButtonDown(yawAxis));
-        }
+            return (Input.GetAxis(pitchAxis) != 0.0f || Input.GetAxis(yawAxis) != 0.0f || Input.GetAxis(rollAxis) != 0.0f);
     }
 
-    [SerializeField]
+    //[SerializeField]
     private bool autoTrim = false;
 
     //private float pitch, yaw, roll;
     private Vector3 autoTrimAngle;
     private bool autoTrimIsOn = false;
-	// Use this for initialization
-	//void Start()
-	//{
-		
-	//}
+    private Vector3 prevAngVel;
+    private Vector3 trim;
 	
 	// Update is called once per frame
 	void Update()
@@ -42,18 +35,10 @@ public class FlightSimController : APlayerController {
         roll = -Input.GetAxis(rollAxis);
         pitch = Input.GetAxis(pitchAxis);
         yaw = Input.GetAxis(yawAxis);
-        //if (!autoTrimIsOn)
-        //{
-        //    lBody.pitch = pitch;
-        //    lBody.yaw = yaw;
-        //    lBody.roll = roll;
-        //}
-        //lBody.roll = -Input.GetAxis(rollAxis);// - relativeRot.z;
-        //lBody.pitch = Input.GetAxis(pitchAxis);// - relativeRot.x;
+        
         if (aoaLimit != 0f)
         {
             float aoa = lBody.AoA * Mathf.Rad2Deg; // aoa = AoA in degrees
-            //print(aoa);
             if (aoa > aoaLimit - aoaMargin && aoa < 90.0f)
                 pitch = Mathf.Max(pitch, Mathf.Clamp((aoa - aoaLimit) / aoaMargin, -1f, 1f));
 
@@ -77,19 +62,19 @@ public class FlightSimController : APlayerController {
             lBody.pitch = pitch;
             lBody.yaw = yaw;
             lBody.roll = roll;
-            //lBody.yaw = Input.GetAxis(yawAxis);
             for (int i = 0; i < engine.Length; i++)
                 engine[i].SetThrottle(Input.GetAxis(throttleAxis) * 0.5f + 0.5f);
         }
 
         if (autoTrim)
         {
-            if (startAutoTrim)
+            if (startAutoTrim())
             {
-                autoTrimAngle = transform.rotation.eulerAngles;
+                prevAngVel = lBody.angularVelocity;
+                trim = Vector3.zero;
                 autoTrimIsOn = true;
             }
-            if (stopAutoTrim)
+            if (stopAutoTrim())
             {
                 autoTrimIsOn = false;
             }
@@ -99,9 +84,11 @@ public class FlightSimController : APlayerController {
 
     void AutoTrim()
     {
-        print(lBody.pitch);
-        lBody.pitch = -lBody.angularVelocity.x * 0.0625f;
-        lBody.yaw = -lBody.angularVelocity.y * 0.0625f;
-        lBody.roll = lBody.angularVelocity.z * 0.0625f;
+        Vector3 AngularAccel = (lBody.angularVelocity - prevAngVel) / (Time.deltaTime * 2);
+        trim -= (lBody.angularVelocity + AngularAccel) * TRIM_INTENSITY;
+        prevAngVel = lBody.angularVelocity;
+        lBody.pitch += trim.x;
+        lBody.yaw += trim.y;
+        lBody.roll += trim.z;
     }
 }
