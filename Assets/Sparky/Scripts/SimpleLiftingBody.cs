@@ -26,15 +26,13 @@ public class SimpleLiftingBody : ALiftingBody {
     [SerializeField]
     private float vertAspectRatio; // recommended: vert stab AR
     [SerializeField]
-    private float moment; // recommended: 1.0f. Only use if aircraft must have tendency to rotate in a specific way; stability vector usually will get most of it.
+    private float moment; // recommended: start with 0.5f, change until it feels right.
     [SerializeField]
     private Vector2 stability; // recommended: most civilian aircraft: (+, +); aerobatics, fighters: (0, +); relaxed-stability, forward-swept: (-, +)
     [SerializeField]
-    private float cruiseAlt; // Altitude at which the next two numbers are true
+    private float stallSpeed; // Speed at which AoA = stall angle when flying straight @ 0m MSL (m/s)
     [SerializeField]
-    private float stallSpeed; // Speed at which AoA = stall angle when flying straight
-    [SerializeField]
-    private float cruiseSpeed; // Speed at which level aircraft also flies level. 0 means never; wings are symmetrical.
+    private float cruiseSpeed; // Speed at which level aircraft also flies level @ 0m MSL. 0 means never; wings are symmetrical.(m/s)
 
     private Airfoil horizAirfoil, vertAirfoil; // approximation of all horizontal surfaces' airfoils.
     private float invCruiseSpeed;
@@ -56,7 +54,7 @@ public class SimpleLiftingBody : ALiftingBody {
         // Stats for horizontal AF
         // liftLevel
         if (cruiseSpeed != 0f)
-            liftLevel = 2 * mass * -Physics.gravity.y / (atm.Density(cruiseAlt, true) * cruiseSpeed * cruiseSpeed * horizWingArea); // 2 * m * g / (p * V^2 * S) = Cl 
+            liftLevel = 2 * mass * -Physics.gravity.y / (1.0f * cruiseSpeed * cruiseSpeed * horizWingArea); // 2 * m * g / (p * V^2 * S) = Cl 
         else
             liftLevel = 0;
         print("liftLevel = " + liftLevel);
@@ -64,7 +62,7 @@ public class SimpleLiftingBody : ALiftingBody {
         liftSlope = Mathf.PI * Mathf.PI / 90 * (1 - Mathf.Exp(-horizAspectRatio * 0.5f));
         print("liftSlope = " + liftSlope);
         // stallAngle
-        stallAngle = (2 * mass * -Physics.gravity.y / (atm.Density(cruiseAlt, true) * stallSpeed * stallSpeed * horizWingArea) - liftLevel) * Mathf.PI / (2 * liftSlope); // (2 * m * g / (p * V^2 * S) - L) * pi / (2 * l) = s
+        stallAngle = (2 * mass * -Physics.gravity.y / (1.0f * stallSpeed * stallSpeed * horizWingArea) - liftLevel) * Mathf.PI / (2 * liftSlope); // (2 * m * g / (p * V^2 * S) - L) * pi / (2 * l) = s
         print("stallAngle = " + stallAngle);
 
         horizAirfoil = new Airfoil(liftLevel, liftSlope, stallAngle, -moment, stability.x, wingDragCoeff);
@@ -108,18 +106,25 @@ public class SimpleLiftingBody : ALiftingBody {
 
     private void lift() // different from LiftingBody.lift, in that it is much simpler
     {
-        float horizLiftPerCoeff = velocity.sqrMagnitude * horizWingArea * atm.Density(transform.position.y, true) * 0.5f / mass;
-        float vertLiftPerCoeff = velocity.sqrMagnitude * vertWingArea * atm.Density(transform.position.y, true) * 0.5f / mass;
+        float speedSqrYZ = velocity.y * velocity.y + velocity.z * velocity.z;
+        float speedSqrXZ = velocity.x * velocity.x + velocity.z * velocity.z;
+        float horizLiftPerCoeff = speedSqrYZ * horizWingArea * atm.Density(transform.position.y, true) * 0.5f / mass;
+        float vertLiftPerCoeff = speedSqrXZ * vertWingArea * atm.Density(transform.position.y, true) * 0.5f / mass;
         float degAoA = AoA * Mathf.Rad2Deg;
         float degSideslip = sideslip * Mathf.Rad2Deg;
         float horizDrag = horizAirfoil.getDrag(degAoA) * horizWingArea;
         float vertDrag = vertAirfoil.getDrag(degSideslip) * vertWingArea;
         float totalDrag = indicatedVelocity.sqrMagnitude * atm.Density(transform.position.y, true) * 0.5f / mass * (horizDrag + vertDrag + bodyDragCoeff * frontalArea);
         Vector3 relativeAccel = new Vector3(-vertAirfoil.getLift(degSideslip) * vertLiftPerCoeff, horizAirfoil.getLift(degAoA) * horizLiftPerCoeff, -totalDrag);
-        acceleration += TransformR(relativeAccel);
+        Vector3 fixedAcceleration = TransformR(relativeAccel);
+        if ((velocity.x + acceleration.x * Time.fixedDeltaTime) * velocity.x < 0.0f)
+        {
+            fixedAcceleration.x = -velocity.x / Time.fixedDeltaTime;
+        }
+        acceleration += fixedAcceleration;
         angularVelocity = new Vector3(horizAirfoil.getMoment(degAoA) * horizLiftPerCoeff, vertAirfoil.getMoment(degSideslip) * vertLiftPerCoeff, 0f);
         angularVelocity += new Vector3(-moment * Mathf.Cos(Vector3.Angle(Physics.gravity, transform.up) * Mathf.Deg2Rad) * horizLiftPerCoeff, 0.0f, 0.0f);
-        float controlCoeff = ias * invCruiseSpeed * Mathf.Max(0.5f, Mathf.Cos(AoA * 2)); // possible source of backwards flying bug: if ias is negative, controlCoeff is negative.
+        float controlCoeff = ias * invCruiseSpeed * Mathf.Max(0.0f, Mathf.Cos(AoA * 2)); // possible source of backwards flying bug: if ias is negative, controlCoeff is negative.
 
 		if (controlSpeed.x > 0) {
 			if (control.x < pitch) // figure out pitch control

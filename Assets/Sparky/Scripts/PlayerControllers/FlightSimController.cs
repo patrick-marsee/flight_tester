@@ -54,10 +54,10 @@ public class FlightSimController : APlayerController {
         {
             float aoa = lBody.AoA * Mathf.Rad2Deg; // aoa = AoA in degrees
             //print(aoa);
-            if (aoa > aoaLimit - aoaMargin)
+            if (aoa > aoaLimit - aoaMargin && aoa < 90.0f)
                 pitch = Mathf.Max(pitch, Mathf.Clamp((aoa - aoaLimit) / aoaMargin, -1f, 1f));
 
-            else if (aoa < aoaMargin - aoaLimit)
+            else if (aoa < aoaMargin - aoaLimit && aoa > -90.0f)
                 pitch = Mathf.Min(pitch, Mathf.Clamp((aoaLimit + aoa) / aoaMargin, -1f, 1f));
         }
         if (gLimit != 0f)
