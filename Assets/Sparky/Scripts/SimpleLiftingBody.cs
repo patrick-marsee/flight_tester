@@ -33,6 +33,8 @@ public class SimpleLiftingBody : ALiftingBody {
     private float stallSpeed; // Speed at which AoA = stall angle when flying straight @ 0m MSL (m/s)
     [SerializeField]
     private float cruiseSpeed; // Speed at which level aircraft also flies level @ 0m MSL. 0 means never; wings are symmetrical.(m/s)
+    [SerializeField]
+    private float rideHeight;
 
     private Airfoil horizAirfoil, vertAirfoil; // approximation of all horizontal surfaces' airfoils.
     private float invCruiseSpeed;
@@ -77,24 +79,59 @@ public class SimpleLiftingBody : ALiftingBody {
 
     void FixedUpdate()
     {
-        //Vector3 gravity = transform.InverseTransformDirection(Physics.gravity);
+        if (!isLanded)
+        {
+            fly();
+        }
+        else
+        {
+            taxi();
+        }
+    }
+    
+    private void fly()
+    {
         acceleration = transform.InverseTransformDirection(Physics.gravity);
         acceleration += Vector3.forward * thrust / mass;
-        lift(); // does lift, drag, and rotational moment
+        lift();
         velocity += acceleration * Time.fixedDeltaTime;
-        //angularVelocity += angularAcceleration * Time.fixedDeltaTime;
         transform.Translate(velocity * Time.fixedDeltaTime * iScale);
         Vector3 prevVel = transform.TransformDirection(velocity);
         transform.Rotate(angularVelocity * Time.fixedDeltaTime);
         velocity = transform.InverseTransformDirection(prevVel);
-        //transform.Rotate(new Vector3(pitch * controlResponse.x * Mathf.Sqrt(ias), yaw * controlResponse.y * Mathf.Sqrt(ias), roll * controlResponse.z * Mathf.Sqrt(ias)) * Time.fixedDeltaTime);
     }
-
-    // Update is called once per frame
-    void Update()
-	{
-		
-	}
+    
+    private void taxi()
+    {
+        // We need the ground's normal.
+        RaycastHit ground;
+        Physics.Raycast(transform.position, -transform.up, out ground, rideHeight + 1.0f, 0xFF, QueryTriggerInteraction.Ignore);
+        Vector3 gravity = transform.InverseTransformDirection(Physics.gravity);
+        Vector3 groundNormal = transform.InverseTransformDirection(ground.normal);
+        if (thrust == 0.0f)
+        {
+            thrust = -50000.0f;
+        }
+        acceleration = Vector3.forward * thrust / mass;
+        velocity -= Vector3.Project(velocity, gravity);
+        lift();
+        velocity += acceleration * Time.fixedDeltaTime;
+        velocity = new Vector3(0.0f, velocity.y, Mathf.Max(0.0f, velocity.z));
+        Vector3 upwardsAccel = Vector3.Project(acceleration, groundNormal);
+        Vector3 gravityEOR = Vector3.Project(gravity, groundNormal);
+        if (upwardsAccel.sqrMagnitude > gravityEOR.sqrMagnitude)
+        {
+            print("upwardsAccel = " + upwardsAccel.ToString());
+            print("gravityEOR = " + gravityEOR.ToString());
+            isLanded = false;
+        }
+        transform.Rotate(angularVelocity * Time.fixedDeltaTime);
+        Vector3 axis = Vector3.Cross(Vector3.up, groundNormal);
+        float angle = 30.0f * (1.0f - (upwardsAccel.magnitude / gravityEOR.magnitude)); // for now
+        float flatAngle = Vector3.Angle(Vector3.up, groundNormal);
+        transform.Rotate(axis, Mathf.Min(flatAngle, angle * Time.fixedDeltaTime));
+        transform.Translate(velocity * Time.fixedDeltaTime * iScale + Vector3.up * (rideHeight - ground.distance));
+    }
 
 	private Vector3 TransformR(Vector3 R) // transform lift and drag into the same basis as velocity
 	{
@@ -114,7 +151,12 @@ public class SimpleLiftingBody : ALiftingBody {
         float degSideslip = sideslip * Mathf.Rad2Deg;
         float horizDrag = horizAirfoil.getDrag(degAoA) * horizWingArea;
         float vertDrag = vertAirfoil.getDrag(degSideslip) * vertWingArea;
-        float totalDrag = indicatedVelocity.sqrMagnitude * atm.Density(transform.position.y, true) * 0.5f / mass * (horizDrag + vertDrag + bodyDragCoeff * frontalArea);
+        float asdf = mass * (horizDrag + vertDrag + bodyDragCoeff * frontalArea);
+        float totalDrag = 0.0f;
+        if (asdf != 0.0f)
+        {
+            totalDrag = indicatedVelocity.sqrMagnitude * atm.Density(transform.position.y, true) * 0.5f / asdf;
+        }
         Vector3 relativeAccel = new Vector3(-vertAirfoil.getLift(degSideslip) * vertLiftPerCoeff, horizAirfoil.getLift(degAoA) * horizLiftPerCoeff, -totalDrag);
         Vector3 fixedAcceleration = TransformR(relativeAccel);
         if ((velocity.x + acceleration.x * Time.fixedDeltaTime) * velocity.x < 0.0f)
@@ -166,5 +208,18 @@ public class SimpleLiftingBody : ALiftingBody {
         float vertDrag = vertAirfoil.getDrag(degSideslip) * vertWingArea;
         float totalDrag = indicatedVelocity.sqrMagnitude * atm.Density(transform.position.y, true) * 0.5f / mass * (horizDrag + vertDrag + bodyDragCoeff * frontalArea);
         acceleration += TransformR(Vector3.back * totalDrag);
+    }
+    
+    // Detect if we've crashed or landed.
+    private void OnTriggerEnter(Collider other)
+    {
+        RaycastHit ground;
+        Physics.Raycast(transform.position, -transform.up, out ground, rideHeight + 1.0f, 0xFF, QueryTriggerInteraction.Ignore);
+        Vector3 upwardsAccel = Vector3.Project(acceleration, ground.normal);
+        Vector3 gravityEOR = Vector3.Project(Physics.gravity, ground.normal);
+        if (upwardsAccel.sqrMagnitude < gravityEOR.sqrMagnitude)
+        {
+            isLanded = true;
+        }
     }
 }

@@ -25,8 +25,19 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
     public Vector3 acceleration { get; set; }
     public Vector3 angularAcceleration { get; set; }
     public Vector3 geeForce { get { return (acceleration - transform.InverseTransformDirection(Physics.gravity)) / Physics.gravity.magnitude; } }
-    public float AoA { get { return -Mathf.Atan(velocity.y / velocity.z); } } // radians
-    public float sideslip { get { return Mathf.Atan(velocity.x / velocity.z); } }
+    public float AoA
+    { 
+        get 
+        { 
+            return (velocity.z != 0.0f ? -Mathf.Atan(velocity.y / velocity.z) : 0.0f); 
+        } 
+    } // radians
+    public float sideslip {
+        get 
+        { 
+            return (velocity.z != 0.0f ? Mathf.Atan(velocity.x / velocity.z) : 0.0f);
+        } 
+    }
     public float mass { get { return Mass; } set { Mass = value; } }
     public float pitch { get; set; }
     public float yaw { get; set; }
@@ -36,10 +47,12 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
 	public float tas { get { return Mathf.Sqrt(velocity.z * velocity.z + velocity.y * velocity.y) * Mathf.Sign(velocity.z); } } // true air speed
     public float ias { get { return tas * Mathf.Sqrt(atm.Density(transform.position.y, true)); } } // indicated airspeed
     public bool isControlable { get; set; }
+    public bool isLanded { get; set; }
 
     // Use this for initialization
     protected virtual void Start()
 	{
+        isLanded = false;
         isControlable = true;
         rBody = GetComponent<Rigidbody>();
         atm = FindObjectOfType<Atmosphere>();

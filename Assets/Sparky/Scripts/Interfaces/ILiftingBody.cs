@@ -21,6 +21,7 @@ public interface ILiftingBody {
     float tas { get; } // true air speed
     float ias { get; } // indicated airspeed
     bool isControlable { get; set; }
+    bool isLanded { get; set; }
 
     void SetPosition(Vector3 pos, Quaternion rot, float speed);
 
