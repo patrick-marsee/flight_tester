@@ -39,6 +39,7 @@ public class FlightHudScript : MonoBehaviour {
         atmo = FindObjectOfType<Atmosphere>();
         pitch = GameObject.Find("Pitch");
         roll = GameObject.Find("Roll");
+        playerPlane.ConnectThrustSet(UpdateThrustMeter);
 
         Rect getRect = GetComponent<RectTransform>().rect;
         screenres = getRect.size;
@@ -78,7 +79,6 @@ public class FlightHudScript : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-        thrustMeter.text = string.Format("Total Thrust: {0:F1} kN", playerPlane.thrust * 0.001f);
         speedometer.text = string.Format("{0:F1}", playerPlane.ias * VEL_CONVERSIONS[(int)velocityUnit]);
         tasMeter.text = string.Format("True Air Speed: {0:F1}", playerPlane.tas * VEL_CONVERSIONS[(int)velocityUnit]);
         machMeter.text = string.Format("{0:F2}", atmo.Mach(player.transform.position.y, playerPlane.tas));
@@ -98,4 +98,9 @@ public class FlightHudScript : MonoBehaviour {
         //vector.rectTransform.anchoredPosition = new Vector2(xAngle * 8, yAngle * 8);
         //vector.rectTransform.position = new Vector3(playerPlane.velocity.x, -playerPlane.velocity.y, 0);
 	}
+    
+    void UpdateThrustMeter(float aThrust)
+    {
+        thrustMeter.text = string.Format("Total Thrust: {0:F1} kN", aThrust * 0.001f);
+    }
 }

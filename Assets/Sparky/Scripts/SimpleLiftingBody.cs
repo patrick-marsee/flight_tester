@@ -38,7 +38,7 @@ public class SimpleLiftingBody : ALiftingBody {
 
     private Airfoil horizAirfoil, vertAirfoil; // approximation of all horizontal surfaces' airfoils.
     private float invCruiseSpeed;
-	private Vector3 control; // The actual control being applied, after control speed
+	private Vector3 mControl; // The actual control being applied, after control speed
 
     // Use this for initialization
     override protected void Start()
@@ -79,6 +79,7 @@ public class SimpleLiftingBody : ALiftingBody {
 
     void FixedUpdate()
     {
+        FinalizeControls();
         if (!isLanded)
         {
             fly();
@@ -87,18 +88,19 @@ public class SimpleLiftingBody : ALiftingBody {
         {
             taxi();
         }
+        ResetControls();
     }
     
     private void fly()
     {
-        acceleration = transform.InverseTransformDirection(Physics.gravity);
-        acceleration += Vector3.forward * thrust / mass;
+        mAcceleration = transform.InverseTransformDirection(Physics.gravity);
+        mAcceleration += Vector3.forward * mThrust / mass;
         lift();
-        velocity += acceleration * Time.fixedDeltaTime;
-        transform.Translate(velocity * Time.fixedDeltaTime * iScale);
-        Vector3 prevVel = transform.TransformDirection(velocity);
-        transform.Rotate(angularVelocity * Time.fixedDeltaTime);
-        velocity = transform.InverseTransformDirection(prevVel);
+        mVelocity += mAcceleration * Time.fixedDeltaTime;
+        transform.Translate(mVelocity * Time.fixedDeltaTime * iScale);
+        Vector3 prevVel = transform.TransformDirection(mVelocity);
+        transform.Rotate(mAngularVelocity * Time.fixedDeltaTime);
+        mVelocity = transform.InverseTransformDirection(prevVel);
     }
     
     private void taxi()
@@ -108,16 +110,17 @@ public class SimpleLiftingBody : ALiftingBody {
         Physics.Raycast(transform.position, -transform.up, out ground, rideHeight + 1.0f, 0xFF, QueryTriggerInteraction.Ignore);
         Vector3 gravity = transform.InverseTransformDirection(Physics.gravity);
         Vector3 groundNormal = transform.InverseTransformDirection(ground.normal);
-        if (thrust == 0.0f)
+        if (mThrust == 0.0f)
         {
-            thrust = -50000.0f;
+            mThrust = -50000.0f;
         }
-        acceleration = Vector3.forward * thrust / mass;
-        velocity -= Vector3.Project(velocity, gravity);
+        acceleration = Vector3.forward * mThrust / mass;
+        mVelocity -= Vector3.Project(mVelocity, gravity);
         lift();
-        velocity += acceleration * Time.fixedDeltaTime;
-        velocity = new Vector3(0.0f, velocity.y, Mathf.Max(0.0f, velocity.z));
-        Vector3 upwardsAccel = Vector3.Project(acceleration, groundNormal);
+        mVelocity += acceleration * Time.fixedDeltaTime;
+        mVelocity.x = 0.0f;
+        mVelocity.z = Mathf.Max(0.0f, mVelocity.z);
+        Vector3 upwardsAccel = Vector3.Project(mAcceleration, groundNormal);
         Vector3 gravityEOR = Vector3.Project(gravity, groundNormal);
         if (upwardsAccel.sqrMagnitude > gravityEOR.sqrMagnitude)
         {
@@ -125,12 +128,12 @@ public class SimpleLiftingBody : ALiftingBody {
             print("gravityEOR = " + gravityEOR.ToString());
             isLanded = false;
         }
-        transform.Rotate(angularVelocity * Time.fixedDeltaTime);
+        transform.Rotate(mAngularVelocity * Time.fixedDeltaTime);
         Vector3 axis = Vector3.Cross(Vector3.up, groundNormal);
         float angle = 30.0f * (1.0f - (upwardsAccel.magnitude / gravityEOR.magnitude)); // for now
         float flatAngle = Vector3.Angle(Vector3.up, groundNormal);
         transform.Rotate(axis, Mathf.Min(flatAngle, angle * Time.fixedDeltaTime));
-        transform.Translate(velocity * Time.fixedDeltaTime * iScale + Vector3.up * (rideHeight - ground.distance));
+        transform.Translate(mVelocity * Time.fixedDeltaTime * iScale + Vector3.up * (rideHeight - ground.distance));
     }
 
 	private Vector3 TransformR(Vector3 R) // transform lift and drag into the same basis as velocity
@@ -143,8 +146,8 @@ public class SimpleLiftingBody : ALiftingBody {
 
     private void lift() // different from LiftingBody.lift, in that it is much simpler
     {
-        float speedSqrYZ = velocity.y * velocity.y + velocity.z * velocity.z;
-        float speedSqrXZ = velocity.x * velocity.x + velocity.z * velocity.z;
+        float speedSqrYZ = mVelocity.y * mVelocity.y + mVelocity.z * mVelocity.z;
+        float speedSqrXZ = mVelocity.x * mVelocity.x + mVelocity.z * mVelocity.z;
         float horizLiftPerCoeff = speedSqrYZ * horizWingArea * atm.Density(transform.position.y, true) * 0.5f / mass;
         float vertLiftPerCoeff = speedSqrXZ * vertWingArea * atm.Density(transform.position.y, true) * 0.5f / mass;
         float degAoA = AoA * Mathf.Rad2Deg;
@@ -159,55 +162,45 @@ public class SimpleLiftingBody : ALiftingBody {
         }
         Vector3 relativeAccel = new Vector3(-vertAirfoil.getLift(degSideslip) * vertLiftPerCoeff, horizAirfoil.getLift(degAoA) * horizLiftPerCoeff, -totalDrag);
         Vector3 fixedAcceleration = TransformR(relativeAccel);
-        if ((velocity.x + acceleration.x * Time.fixedDeltaTime) * velocity.x < 0.0f)
+        if ((mVelocity.x + mAcceleration.x * Time.fixedDeltaTime) * mVelocity.x < 0.0f)
         {
-            fixedAcceleration.x = -velocity.x / Time.fixedDeltaTime;
+            fixedAcceleration.x = -mVelocity.x / Time.fixedDeltaTime;
         }
-        if ((velocity.y + acceleration.y * Time.fixedDeltaTime) * velocity.y < 0.0f)
+        if ((mVelocity.y + mAcceleration.y * Time.fixedDeltaTime) * mVelocity.y < 0.0f)
         {
-            fixedAcceleration.y = -velocity.y / Time.fixedDeltaTime;
+            fixedAcceleration.y = -mVelocity.y / Time.fixedDeltaTime;
         }
-        acceleration += fixedAcceleration;
-        angularVelocity = new Vector3(horizAirfoil.getMoment(degAoA) * horizLiftPerCoeff, vertAirfoil.getMoment(degSideslip) * vertLiftPerCoeff, 0f);
-        angularVelocity += new Vector3(-moment * Mathf.Cos(Vector3.Angle(Physics.gravity, transform.up) * Mathf.Deg2Rad) * horizLiftPerCoeff, 0.0f, 0.0f);
+        mAcceleration += fixedAcceleration;
+        mAngularVelocity = new Vector3(horizAirfoil.getMoment(degAoA) * horizLiftPerCoeff, vertAirfoil.getMoment(degSideslip) * vertLiftPerCoeff, 0f);
+        mAngularVelocity += new Vector3(-moment * Mathf.Cos(Vector3.Angle(Physics.gravity, transform.up) * Mathf.Deg2Rad) * horizLiftPerCoeff, 0.0f, 0.0f);
         float controlCoeff = ias * invCruiseSpeed * Mathf.Max(0.0f, Mathf.Cos(AoA * 2)); // possible source of backwards flying bug: if ias is negative, controlCoeff is negative.
 
 		if (controlSpeed.x > 0) {
-			if (control.x < pitch) // figure out pitch control
-				control.x += Mathf.Min (controlSpeed.x * Time.fixedDeltaTime, pitch - control.x);
-			else if (control.x > pitch)
-				control.x -= Mathf.Min (controlSpeed.x * Time.fixedDeltaTime, control.x - pitch);
+			if (mControl.x < mPitch) // figure out pitch control
+				mControl.x += Mathf.Min (controlSpeed.x * Time.fixedDeltaTime, mPitch - mControl.x);
+			else if (mControl.x > mPitch)
+				mControl.x -= Mathf.Min (controlSpeed.x * Time.fixedDeltaTime, mControl.x - mPitch);
 		} else
-			control.x = pitch;
+			mControl.x = mPitch;
 
 		if (controlSpeed.y > 0) {
-			if (control.y < yaw) // figure out yaw control
-				control.y += Mathf.Min (controlSpeed.y * Time.fixedDeltaTime, yaw - control.y);
-			else if (control.y > yaw)
-				control.y -= Mathf.Min (controlSpeed.y * Time.fixedDeltaTime, control.y - yaw);
+			if (mControl.y < mYaw) // figure out yaw control
+				mControl.y += Mathf.Min (controlSpeed.y * Time.fixedDeltaTime, mYaw - mControl.y);
+			else if (mControl.y > mYaw)
+				mControl.y -= Mathf.Min (controlSpeed.y * Time.fixedDeltaTime, mControl.y - mYaw);
 		} else
-			control.y = yaw;
+			mControl.y = mYaw;
 
 		if (controlSpeed.z > 0) {
-			if (control.z < roll) // figure out roll control
-				control.z += Mathf.Min (controlSpeed.z * Time.fixedDeltaTime, roll - control.z);
-			else if (control.z > roll)
-				control.z -= Mathf.Min (controlSpeed.z * Time.fixedDeltaTime, control.z - roll);
+			if (mControl.z < mRoll) // figure out roll control
+				mControl.z += Mathf.Min (controlSpeed.z * Time.fixedDeltaTime, mRoll - mControl.z);
+			else if (mControl.z > mRoll)
+				mControl.z -= Mathf.Min (controlSpeed.z * Time.fixedDeltaTime, mControl.z - mRoll);
 		} else
-			control.z = roll;
+			mControl.z = mRoll;
+        //print(mControl.ToString());
 
-		angularVelocity += Vector3.Scale(control, controlResponse) * Mathf.Sqrt(Mathf.Abs(controlCoeff)) * Mathf.Sign(controlCoeff); // If controlCoeff is negative, sqrt(controlCoeff) is NaN.
-        // angularVelocity += new Vector3(pitch * controlResponse.x * Mathf.Sqrt(controlCoeff), yaw * controlResponse.y * Mathf.Sqrt(controlCoeff), roll * controlResponse.z * Mathf.Sqrt(controlCoeff));
-    }
-
-    private void drag() // depricated
-    {
-        float degAoA = AoA * Mathf.Rad2Deg;
-        float degSideslip = sideslip * Mathf.Rad2Deg;
-        float horizDrag = horizAirfoil.getDrag(degAoA) * horizWingArea;
-        float vertDrag = vertAirfoil.getDrag(degSideslip) * vertWingArea;
-        float totalDrag = indicatedVelocity.sqrMagnitude * atm.Density(transform.position.y, true) * 0.5f / mass * (horizDrag + vertDrag + bodyDragCoeff * frontalArea);
-        acceleration += TransformR(Vector3.back * totalDrag);
+		mAngularVelocity += Vector3.Scale(mControl, controlResponse) * Mathf.Sqrt(Mathf.Abs(controlCoeff)) * Mathf.Sign(controlCoeff); // If controlCoeff is negative, sqrt(controlCoeff) is NaN.
     }
     
     // Detect if we've crashed or landed.

@@ -41,9 +41,9 @@ public abstract class APilot : MonoBehaviour {
     {
         if (lBody.isControlable)
         {
-            lBody.pitch = pitch;
-            lBody.yaw = yaw;
-            lBody.roll = roll;
+            lBody.AdjustPitch(pitch);
+            lBody.AdjustYaw(yaw);
+            lBody.AdjustRoll(roll);
             for (int i = 0; i < engine.Length; i++)
             {
                 engine[i].SetThrottle(throttle);

@@ -47,7 +47,9 @@ public abstract class AEngine : MonoBehaviour, IEngine {
     {
         //print(isOn);
         if (isOn && lBody.isControlable)
-            lBody.thrust = GetThrust(lBody.tas, atmo.Density(transform.position.y, true), atmo.Temperature(transform.position.y));
+        {
+            lBody.AdjustThrust(GetThrust(lBody.tas, atmo.Density(transform.position.y, true), atmo.Temperature(transform.position.y)));
+        }
     }
 
     // current true airSpeed, relative density at curent altitude, temperature at current altitude
