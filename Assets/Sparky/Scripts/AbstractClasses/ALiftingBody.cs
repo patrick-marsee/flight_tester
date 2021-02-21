@@ -16,6 +16,8 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
     private float Mass;
     [SerializeField]
     protected float mBrakingPower;
+    [SerializeField]
+    private bool startLanded;
 
     protected Rigidbody rBody;
     protected Atmosphere atm;
@@ -32,6 +34,9 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
     private ILiftingBody.ControlSet mYawCallbacks;
     private ILiftingBody.ControlSet mRollCallbacks;
     private ILiftingBody.ControlSet mThrustCallbacks;
+    protected ILiftingBody.FlightEvent mLandCallbacks;
+    protected ILiftingBody.FlightEvent mTakeoffCallbacks;
+    protected ILiftingBody.FlightEvent mCrashCallbacks;
     
     private bool mControlLock;
 
@@ -115,9 +120,9 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
     protected virtual void Start()
 	{
         mControlLock = false;
-        isLanded = false;
+        isLanded = startLanded;
         isControlable = true;
-        braking = false;
+        braking = startLanded;
         rBody = GetComponent<Rigidbody>();
         atm = FindObjectOfType<Atmosphere>();
         velocity = new Vector3(0f, 0f, startSpeed); // TO SCALE ALREADY
@@ -155,6 +160,21 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
     public void ConnectThrustSet(ILiftingBody.ControlSet aCallback)
     {
         mThrustCallbacks += aCallback;
+    }
+    
+    public void ConnectLandEvent(ILiftingBody.FlightEvent aCallback)
+    {
+        mLandCallbacks += aCallback;
+    }
+    
+    public void ConnectTakeoffEvent(ILiftingBody.FlightEvent aCallback)
+    {
+        mTakeoffCallbacks += aCallback;
+    }
+    
+    public void ConnectCrashEvent(ILiftingBody.FlightEvent aCallback)
+    {
+        mCrashCallbacks += aCallback;
     }
     
     public void AdjustPitch(float aPitch)

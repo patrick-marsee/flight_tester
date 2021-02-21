@@ -25,6 +25,8 @@ public interface ILiftingBody {
     // to avoid what amounts to data races.
     delegate void ControlSet(float aPitch);
     
+    delegate void FlightEvent();
+    
     void ConnectPitchSet(ControlSet aCallback);
     
     void ConnectYawSet(ControlSet aCallback);
@@ -32,6 +34,12 @@ public interface ILiftingBody {
     void ConnectRollSet(ControlSet aCallback);
     
     void ConnectThrustSet(ControlSet aCallback);
+    
+    void ConnectLandEvent(FlightEvent aCallback);
+    
+    void ConnectTakeoffEvent(FlightEvent aCallback);
+    
+    void ConnectCrashEvent(FlightEvent aCallback);
     
     // The values passed to these functions should be added to the internal values.
     void AdjustPitch(float aPitch);

@@ -126,16 +126,24 @@ public class SimpleLiftingBody : ALiftingBody {
         mVelocity.z = Mathf.Max(0.0f, mVelocity.z);
         Vector3 upwardsAccel = Vector3.Project(mAcceleration, groundNormal);
         Vector3 gravityEOR = Vector3.Project(gravity, groundNormal);
-        if (upwardsAccel.sqrMagnitude > gravityEOR.sqrMagnitude)
+        if (upwardsAccel.sqrMagnitude > gravityEOR.sqrMagnitude
+            && Mathf.Sign(upwardsAccel.y) == Mathf.Sign(groundNormal.y) // Make sure we're not somehow taking off into the ground.
+            || ground.collider == null)
         {
-            print("upwardsAccel = " + upwardsAccel.ToString());
-            print("gravityEOR = " + gravityEOR.ToString());
             isLanded = false;
+            if (mTakeoffCallbacks != null)
+            {
+                mTakeoffCallbacks();
+            }
         }
         transform.Rotate(mAngularVelocity * Time.fixedDeltaTime);
         Vector3 axis = Vector3.Cross(Vector3.up, groundNormal);
-        float angle = 30.0f * (1.0f - (upwardsAccel.magnitude / gravityEOR.magnitude)); // for now
+        float angle = controlResponse.x * 0.5f * (1.0f - (upwardsAccel.magnitude / gravityEOR.magnitude)); // for now
         float flatAngle = Vector3.Angle(Vector3.up, groundNormal);
+        if (flatAngle > 30.0f && mCrashCallbacks != null)
+        {
+            mCrashCallbacks();
+        }
         transform.Rotate(axis, Mathf.Min(flatAngle, angle * Time.fixedDeltaTime));
         transform.Translate(mVelocity * Time.fixedDeltaTime * iScale + Vector3.up * (rideHeight - ground.distance));
     }
@@ -202,7 +210,6 @@ public class SimpleLiftingBody : ALiftingBody {
 				mControl.z -= Mathf.Min (controlSpeed.z * Time.fixedDeltaTime, mControl.z - mRoll);
 		} else
 			mControl.z = mRoll;
-        //print(mControl.ToString());
 
 		mAngularVelocity += Vector3.Scale(mControl, controlResponse) * Mathf.Sqrt(Mathf.Abs(controlCoeff)) * Mathf.Sign(controlCoeff); // If controlCoeff is negative, sqrt(controlCoeff) is NaN.
     }
@@ -211,12 +218,21 @@ public class SimpleLiftingBody : ALiftingBody {
     private void OnTriggerEnter(Collider other)
     {
         RaycastHit ground;
-        Physics.Raycast(transform.position, -transform.up, out ground, rideHeight + 1.0f, 0xFF, QueryTriggerInteraction.Ignore);
+        other.Raycast(new Ray(transform.position, -transform.up), out ground, rideHeight + 1.0f);
+        // The "Ground" tag is so that you can't land on other planes and weirdness like that.
+        if ((ground.collider != other || !other.CompareTag("Ground")) && mCrashCallbacks != null)
+        {
+            mCrashCallbacks();
+        }
         Vector3 upwardsAccel = Vector3.Project(acceleration, ground.normal);
         Vector3 gravityEOR = Vector3.Project(Physics.gravity, ground.normal);
         if (upwardsAccel.sqrMagnitude < gravityEOR.sqrMagnitude)
         {
             isLanded = true;
+            if (mLandCallbacks != null)
+            {
+                mLandCallbacks();
+            }
         }
     }
 }
