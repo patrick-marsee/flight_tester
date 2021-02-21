@@ -19,6 +19,7 @@ public interface ILiftingBody {
     bool isControlable { get; set; }
     bool isLanded { get; set; }
     bool braking { get; set; }
+    bool isLandingGearDeployed { get; set; }
     
     // Callbacks that allow other objects to know what the final value of control
     // settings are. These should not allow their respective values to change

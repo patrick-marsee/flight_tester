@@ -105,6 +105,16 @@ public class SimpleLiftingBody : ALiftingBody {
         Vector3 prevVel = transform.TransformDirection(mVelocity);
         transform.Rotate(mAngularVelocity * Time.fixedDeltaTime);
         mVelocity = transform.InverseTransformDirection(prevVel);
+        // Check to see if we've landed
+        if (isLandingGearDeployed)
+        {
+            RaycastHit ground;
+            Physics.Raycast(transform.position, -transform.up, out ground, rideHeight, 0xFF, QueryTriggerInteraction.Ignore);
+            if (ground.collider != null && ground.distance < rideHeight)
+            {
+                AttemptLanding(ref ground);
+            }
+        }
     }
     
     private void taxi()
@@ -220,7 +230,16 @@ public class SimpleLiftingBody : ALiftingBody {
         RaycastHit ground;
         other.Raycast(new Ray(transform.position, -transform.up), out ground, rideHeight + 1.0f);
         // The "Ground" tag is so that you can't land on other planes and weirdness like that.
-        if ((ground.collider != other || !other.CompareTag("Ground")) && mCrashCallbacks != null)
+        if (ground.collider != other && mCrashCallbacks != null)
+        {
+            mCrashCallbacks();
+        }
+        AttemptLanding(ref ground);
+    }
+    
+    private void AttemptLanding(ref RaycastHit ground)
+    {
+        if ((!ground.collider.CompareTag("Ground") || !isLandingGearDeployed) && mCrashCallbacks != null)
         {
             mCrashCallbacks();
         }

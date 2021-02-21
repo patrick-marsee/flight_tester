@@ -115,6 +115,11 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
         get;
         set;
     }
+    
+    public bool isLandingGearDeployed {
+        get;
+        set;
+    }
 
     // Use this for initialization
     protected virtual void Start()
@@ -123,6 +128,7 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
         isLanded = startLanded;
         isControlable = true;
         braking = startLanded;
+        isLandingGearDeployed = startLanded;
         rBody = GetComponent<Rigidbody>();
         atm = FindObjectOfType<Atmosphere>();
         velocity = new Vector3(0f, 0f, startSpeed); // TO SCALE ALREADY
