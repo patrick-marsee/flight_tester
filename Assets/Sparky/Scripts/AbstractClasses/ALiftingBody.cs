@@ -14,6 +14,8 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
     private float startSpeed;
     [SerializeField]
     private float Mass;
+    [SerializeField]
+    protected float mBrakingPower;
 
     protected Rigidbody rBody;
     protected Atmosphere atm;
@@ -103,6 +105,11 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
         get;
         set;
     }
+    
+    public bool braking {
+        get;
+        set;
+    }
 
     // Use this for initialization
     protected virtual void Start()
@@ -110,6 +117,7 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
         mControlLock = false;
         isLanded = false;
         isControlable = true;
+        braking = false;
         rBody = GetComponent<Rigidbody>();
         atm = FindObjectOfType<Atmosphere>();
         velocity = new Vector3(0f, 0f, startSpeed); // TO SCALE ALREADY

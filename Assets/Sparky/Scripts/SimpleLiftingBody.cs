@@ -94,6 +94,10 @@ public class SimpleLiftingBody : ALiftingBody {
     private void fly()
     {
         mAcceleration = transform.InverseTransformDirection(Physics.gravity);
+        if (braking)
+        {
+            mThrust -= mBrakingPower * (ias / cruiseSpeed);
+        }
         mAcceleration += Vector3.forward * mThrust / mass;
         lift();
         mVelocity += mAcceleration * Time.fixedDeltaTime;
@@ -110,9 +114,9 @@ public class SimpleLiftingBody : ALiftingBody {
         Physics.Raycast(transform.position, -transform.up, out ground, rideHeight + 1.0f, 0xFF, QueryTriggerInteraction.Ignore);
         Vector3 gravity = transform.InverseTransformDirection(Physics.gravity);
         Vector3 groundNormal = transform.InverseTransformDirection(ground.normal);
-        if (mThrust == 0.0f)
+        if (braking)
         {
-            mThrust = -50000.0f;
+            mThrust -= 50000.0f;
         }
         acceleration = Vector3.forward * mThrust / mass;
         mVelocity -= Vector3.Project(mVelocity, gravity);

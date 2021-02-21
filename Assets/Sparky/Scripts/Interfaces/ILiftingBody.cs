@@ -18,6 +18,7 @@ public interface ILiftingBody {
     float ias { get; } // indicated airspeed
     bool isControlable { get; set; }
     bool isLanded { get; set; }
+    bool braking { get; set; }
     
     // Callbacks that allow other objects to know what the final value of control
     // settings are. These should not allow their respective values to change
@@ -42,16 +43,4 @@ public interface ILiftingBody {
     void AdjustThrust(float aThrust);
 
     void SetPosition(Vector3 pos, Quaternion rot, float speed);
-
-    // Use this for initialization
-    //void Start()
-    //{
-
-    //}
-
-    // Update is called once per frame
-    //void Update()
-    //{
-
-    //}
 }

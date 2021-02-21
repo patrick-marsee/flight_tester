@@ -8,10 +8,6 @@ public class FlightSimController : APlayerController {
 
     private bool startAutoTrim()
     {
-            //if (Mathf.Abs(pitch) < 0.1f) print("pitch == " + pitch);
-            //if (Mathf.Abs(yaw) < 0.1f) print("yaw == " + yaw);
-            //if (Mathf.Abs(roll) < 0.1f) print("roll == " + roll);
-            //if (autoTrimIsOn == true) print("autoTrimIsOn == true");
             return !stopAutoTrim() && !autoTrimIsOn;
     }
 
@@ -58,16 +54,8 @@ public class FlightSimController : APlayerController {
 
         }
 
-        //print("pitch = " + pitch.ToString());
-        /*if (lBody.isControlable)
-        {
-            lBody.AdjustPitch(pitch);
-            lBody.AdjustYaw(yaw);
-            lBody.AdjustRoll(roll);
-            for (int i = 0; i < engine.Length; i++)
-                engine[i].SetThrottle(Input.GetAxis(throttleAxis) * 0.5f + 0.5f);
-        }*/
         SetControls();
+        lBody.braking = throttle <= 0.0f;
 
         if (autoTrim)
         {
