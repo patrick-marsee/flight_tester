@@ -234,7 +234,10 @@ public class SimpleLiftingBody : ALiftingBody {
         {
             mCrashCallbacks();
         }
-        AttemptLanding(ref ground);
+        else
+        {
+            AttemptLanding(ref ground);
+        }
     }
     
     private void AttemptLanding(ref RaycastHit ground)
