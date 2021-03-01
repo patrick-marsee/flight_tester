@@ -100,6 +100,7 @@ public class SimpleLiftingBody : ALiftingBody {
         }
         mAcceleration += Vector3.forward * mThrust / mass;
         lift();
+        control();
         mVelocity += mAcceleration * Time.fixedDeltaTime;
         transform.Translate(mVelocity * Time.fixedDeltaTime * iScale);
         Vector3 prevVel = transform.TransformDirection(mVelocity);
@@ -131,6 +132,7 @@ public class SimpleLiftingBody : ALiftingBody {
         acceleration = Vector3.forward * mThrust / mass;
         mVelocity -= Vector3.Project(mVelocity, gravity);
         lift();
+        taxiControl();
         mVelocity += acceleration * Time.fixedDeltaTime;
         mVelocity.x = 0.0f;
         mVelocity.z = Mathf.Max(0.0f, mVelocity.z);
@@ -195,9 +197,11 @@ public class SimpleLiftingBody : ALiftingBody {
         mAcceleration += fixedAcceleration;
         mAngularVelocity = new Vector3(horizAirfoil.getMoment(degAoA) * horizLiftPerCoeff, vertAirfoil.getMoment(degSideslip) * vertLiftPerCoeff, 0f);
         mAngularVelocity += new Vector3(-moment * Mathf.Cos(Vector3.Angle(Physics.gravity, transform.up) * Mathf.Deg2Rad) * horizLiftPerCoeff, 0.0f, 0.0f);
-        float controlCoeff = ias * invCruiseSpeed * Mathf.Max(0.0f, Mathf.Cos(AoA * 2)); // possible source of backwards flying bug: if ias is negative, controlCoeff is negative.
-
-		if (controlSpeed.x > 0) {
+    }
+    
+    private void updateControls()
+    {
+        if (controlSpeed.x > 0) {
 			if (mControl.x < mPitch) // figure out pitch control
 				mControl.x += Mathf.Min (controlSpeed.x * Time.fixedDeltaTime, mPitch - mControl.x);
 			else if (mControl.x > mPitch)
@@ -220,8 +224,26 @@ public class SimpleLiftingBody : ALiftingBody {
 				mControl.z -= Mathf.Min (controlSpeed.z * Time.fixedDeltaTime, mControl.z - mRoll);
 		} else
 			mControl.z = mRoll;
+    }
+    
+    private void control() // How a plane controls in the air
+    {
+        float controlCoeff = ias * invCruiseSpeed * Mathf.Max(0.0f, Mathf.Cos(AoA * 2)); // possible source of backwards flying bug: if ias is negative, controlCoeff is negative.
+
+		updateControls();
 
 		mAngularVelocity += Vector3.Scale(mControl, controlResponse) * Mathf.Sqrt(Mathf.Abs(controlCoeff)) * Mathf.Sign(controlCoeff); // If controlCoeff is negative, sqrt(controlCoeff) is NaN.
+    }
+    
+    private void taxiControl() // How a plane controls on the ground
+    {
+        float controlCoeff = ias * invCruiseSpeed * Mathf.Max(0.0f, Mathf.Cos(AoA * 2)); // possible source of backwards flying bug: if ias is negative, controlCoeff is negative.
+
+		updateControls();
+        
+        mAngularVelocity += Vector3.Scale(mControl, new Vector3(controlResponse.x * Mathf.Sqrt(Mathf.Abs(controlCoeff)) * Mathf.Sign(controlCoeff),
+                                                                tas * 0.1f * Mathf.Exp(tas * -0.1f) * 60.0f,
+                                                                controlResponse.y * Mathf.Sqrt(Mathf.Abs(controlCoeff)) * Mathf.Sign(controlCoeff)));
     }
     
     // Detect if we've crashed or landed.
