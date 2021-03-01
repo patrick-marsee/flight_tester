@@ -150,9 +150,9 @@ public class SimpleLiftingBody : ALiftingBody {
         Vector3 axis = Vector3.Cross(Vector3.up, groundNormal);
         float angle = controlResponse.x * 0.5f * (1.0f - (upwardsAccel.magnitude / gravityEOR.magnitude)); // for now
         float flatAngle = Vector3.Angle(Vector3.up, groundNormal);
-        if (flatAngle > 30.0f && mCrashCallbacks != null)
+        if (flatAngle > 30.0f && mCrashColliderCallbacks != null)
         {
-            mCrashCallbacks();
+            mCrashColliderCallbacks(ground.collider);
         }
         transform.Rotate(axis, Mathf.Min(flatAngle, angle * Time.fixedDeltaTime));
         transform.Translate(mVelocity * Time.fixedDeltaTime * iScale + Vector3.up * (rideHeight - ground.distance));
@@ -230,9 +230,9 @@ public class SimpleLiftingBody : ALiftingBody {
         RaycastHit ground;
         other.Raycast(new Ray(transform.position, -transform.up), out ground, rideHeight + 1.0f);
         // The "Ground" tag is so that you can't land on other planes and weirdness like that.
-        if (ground.collider != other && mCrashCallbacks != null)
+        if (ground.collider != other && mCrashColliderCallbacks != null)
         {
-            mCrashCallbacks();
+            mCrashColliderCallbacks(other);
         }
         else
         {
@@ -242,9 +242,9 @@ public class SimpleLiftingBody : ALiftingBody {
     
     private void AttemptLanding(ref RaycastHit ground)
     {
-        if ((!ground.collider.CompareTag("Ground") || !isLandingGearDeployed) && mCrashCallbacks != null)
+        if (((ground.collider != null && !ground.collider.CompareTag("Ground")) || !isLandingGearDeployed) && mCrashColliderCallbacks != null)
         {
-            mCrashCallbacks();
+            mCrashColliderCallbacks(ground.collider);
         }
         Vector3 upwardsAccel = Vector3.Project(acceleration, ground.normal);
         Vector3 gravityEOR = Vector3.Project(Physics.gravity, ground.normal);

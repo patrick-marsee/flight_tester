@@ -28,6 +28,8 @@ public interface ILiftingBody {
     
     delegate void FlightEvent();
     
+    delegate void CrashEvent(Collider aCrashedInto);
+    
     void ConnectPitchSet(ControlSet aCallback);
     
     void ConnectYawSet(ControlSet aCallback);
@@ -41,6 +43,8 @@ public interface ILiftingBody {
     void ConnectTakeoffEvent(FlightEvent aCallback);
     
     void ConnectCrashEvent(FlightEvent aCallback);
+    
+    void ConnectCrashEvent(CrashEvent aCallback);
     
     // The values passed to these functions should be added to the internal values.
     void AdjustPitch(float aPitch);

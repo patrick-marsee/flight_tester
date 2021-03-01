@@ -37,6 +37,7 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
     protected ILiftingBody.FlightEvent mLandCallbacks;
     protected ILiftingBody.FlightEvent mTakeoffCallbacks;
     protected ILiftingBody.FlightEvent mCrashCallbacks;
+    protected ILiftingBody.CrashEvent mCrashColliderCallbacks;
     
     private bool mControlLock;
 
@@ -181,6 +182,11 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
     public void ConnectCrashEvent(ILiftingBody.FlightEvent aCallback)
     {
         mCrashCallbacks += aCallback;
+    }
+    
+    public void ConnectCrashEvent(ILiftingBody.CrashEvent aCallback)
+    {
+        mCrashColliderCallbacks += aCallback;
     }
     
     public void AdjustPitch(float aPitch)
