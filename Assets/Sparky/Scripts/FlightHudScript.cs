@@ -81,8 +81,8 @@ public class FlightHudScript : MonoBehaviour {
 	void Update () {
         speedometer.text = string.Format("{0:F1}", playerPlane.ias * VEL_CONVERSIONS[(int)velocityUnit]);
         tasMeter.text = string.Format("True Air Speed: {0:F1}", playerPlane.tas * VEL_CONVERSIONS[(int)velocityUnit]);
-        machMeter.text = string.Format("{0:F2}", atmo.Mach(player.transform.position.y, playerPlane.tas));
-        altimeter.text = string.Format("Alt: {0:F1}", player.transform.position.y * atmo.Scale * DIST_CONVERSIONS[(int)distanceUnit]);
+        machMeter.text = string.Format("{0:F2}", atmo.Mach(atmo.Altitude(player.transform.position.y), playerPlane.tas));
+        altimeter.text = string.Format("Alt: {0:F1}", atmo.Altitude(player.transform.position.y) * DIST_CONVERSIONS[(int)distanceUnit]);
         //float xAngle = Vector3.Angle(Vector2.right, new Vector2(playerPlane.velocity.z, playerPlane.velocity.x)) * Mathf.Sign(playerPlane.velocity.x);
         //float yAngle = Vector3.Angle(Vector2.right, new Vector2(playerPlane.velocity.z, playerPlane.velocity.y)) * Mathf.Sign(playerPlane.velocity.y);
         float xAngle = playerPlane.sideslip * Mathf.Rad2Deg;

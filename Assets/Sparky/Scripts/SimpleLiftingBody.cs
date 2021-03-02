@@ -172,18 +172,16 @@ public class SimpleLiftingBody : ALiftingBody {
     {
         float speedSqrYZ = mVelocity.y * mVelocity.y + mVelocity.z * mVelocity.z;
         float speedSqrXZ = mVelocity.x * mVelocity.x + mVelocity.z * mVelocity.z;
-        float horizLiftPerCoeff = speedSqrYZ * horizWingArea * atm.Density(atm.Altitude(transform.position.y), true) * 0.5f / mass;
-        float vertLiftPerCoeff = speedSqrXZ * vertWingArea * atm.Density(atm.Altitude(transform.position.y), true) * 0.5f / mass;
+        float altitude = atm.Altitude(transform.position.y);
+        float horizLiftPerCoeff = speedSqrYZ * horizWingArea * atm.Density(altitude, true) * 0.5f / mass;
+        float vertLiftPerCoeff = speedSqrXZ * vertWingArea * atm.Density(altitude, true) * 0.5f / mass;
         float degAoA = AoA * Mathf.Rad2Deg;
         float degSideslip = sideslip * Mathf.Rad2Deg;
         float horizDrag = horizAirfoil.getDrag(degAoA) * horizWingArea;
         float vertDrag = vertAirfoil.getDrag(degSideslip) * vertWingArea;
-        float asdf = mass * (horizDrag + vertDrag + bodyDragCoeff * frontalArea);
-        float totalDrag = 0.0f;
-        if (asdf != 0.0f)
-        {
-            totalDrag = indicatedVelocity.sqrMagnitude * atm.Density(atm.Altitude(transform.position.y), true) * 0.5f / asdf;
-        }
+        float totalDrag = indicatedVelocity.sqrMagnitude * atm.Density(altitude, true) * 0.5f * (horizDrag + vertDrag + bodyDragCoeff * frontalArea) / mass;
+        float mach = atm.Mach(altitude, mVelocity.magnitude);
+        totalDrag += 3 * totalDrag * Mathf.Min(Mathf.Exp(16 * (mach - 1.0f)), Mathf.Exp(-mach + 1.0f));
         Vector3 relativeAccel = new Vector3(-vertAirfoil.getLift(degSideslip) * vertLiftPerCoeff, horizAirfoil.getLift(degAoA) * horizLiftPerCoeff, -totalDrag);
         Vector3 fixedAcceleration = TransformR(relativeAccel);
         if ((mVelocity.x + mAcceleration.x * Time.fixedDeltaTime) * mVelocity.x < 0.0f)

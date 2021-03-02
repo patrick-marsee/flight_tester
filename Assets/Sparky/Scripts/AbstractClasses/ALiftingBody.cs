@@ -52,7 +52,7 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
     } // degrees per second
     
     public Vector3 indicatedVelocity {
-        get { return mVelocity * Mathf.Sqrt(atm.Density(transform.position.y, true)); }
+        get { return mVelocity * Mathf.Sqrt(atm.Density(atm.Altitude(transform.position.y), true)); }
     }
     
     public Vector3 acceleration {
@@ -99,7 +99,7 @@ public abstract class ALiftingBody : MonoBehaviour, ILiftingBody {
     } // true air speed
     
     public float ias {
-        get { return tas * Mathf.Sqrt(atm.Density(transform.position.y, true)); }
+        get { return tas * Mathf.Sqrt(atm.Density(atm.Altitude(transform.position.y), true)); }
     } // indicated airspeed
     
     public bool isControlable {
