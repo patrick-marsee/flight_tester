@@ -54,8 +54,9 @@ public class FlightSimController : APlayerController {
 
         }
 
+        lBody.braking = throttle <= 0.0f || (lBody.velocity.sqrMagnitude < 0.01f && throttle < 0.51f);
+        if (lBody.braking) throttle = 0.0f; // enforce this so that the engine isn't running at half power when just sitting on the ground.
         SetControls();
-        lBody.braking = throttle <= 0.0f;
 
         if (autoTrim)
         {

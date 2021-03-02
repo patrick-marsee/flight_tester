@@ -26,6 +26,8 @@ public class SimpleLiftingBody : ALiftingBody {
     [SerializeField]
     private float vertAspectRatio; // recommended: vert stab AR
     [SerializeField]
+    private float wingSweep; // recommended: the sweep of the wing, 1/4 of the way back from the leading edge of the wings.
+    [SerializeField]
     private float moment; // recommended: start with 0.5f, change until it feels right.
     [SerializeField]
     private Vector2 stability; // recommended: most civilian aircraft: (+, +); aerobatics, fighters: (0, +); relaxed-stability, forward-swept: (-, +)
@@ -177,11 +179,13 @@ public class SimpleLiftingBody : ALiftingBody {
         float vertLiftPerCoeff = speedSqrXZ * vertWingArea * atm.Density(altitude, true) * 0.5f / mass;
         float degAoA = AoA * Mathf.Rad2Deg;
         float degSideslip = sideslip * Mathf.Rad2Deg;
-        float horizDrag = horizAirfoil.getDrag(degAoA) * horizWingArea;
-        float vertDrag = vertAirfoil.getDrag(degSideslip) * vertWingArea;
-        float totalDrag = indicatedVelocity.sqrMagnitude * atm.Density(altitude, true) * 0.5f * (horizDrag + vertDrag + bodyDragCoeff * frontalArea) / mass;
+        float wingDrag = horizAirfoil.getDrag(degAoA) * horizWingArea + vertAirfoil.getDrag(degSideslip) * vertWingArea;
         float mach = atm.Mach(altitude, mVelocity.magnitude);
-        totalDrag += 3 * totalDrag * Mathf.Min(Mathf.Exp(16 * (mach - 1.0f)), Mathf.Exp(-mach + 1.0f));
+        if (mach > 0.7f) // No need to do expensive calculations unless we're going fast enough for them to matter.
+        {
+            wingDrag += 3 * wingDrag * Mathf.Min(Mathf.Exp(16 * (mach - 1.0f + Mathf.Log10(1 - wingSweep / 90.0f))), Mathf.Exp(-mach + 1.0f));
+        }
+        float totalDrag = indicatedVelocity.sqrMagnitude * atm.Density(altitude, true) * 0.5f * (wingDrag + bodyDragCoeff * frontalArea) / mass;
         Vector3 relativeAccel = new Vector3(-vertAirfoil.getLift(degSideslip) * vertLiftPerCoeff, horizAirfoil.getLift(degAoA) * horizLiftPerCoeff, -totalDrag);
         Vector3 fixedAcceleration = TransformR(relativeAccel);
         if ((mVelocity.x + mAcceleration.x * Time.fixedDeltaTime) * mVelocity.x < 0.0f)
