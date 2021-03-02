@@ -48,7 +48,7 @@ public abstract class AEngine : MonoBehaviour, IEngine {
         //print(isOn);
         if (isOn && lBody.isControlable)
         {
-            lBody.AdjustThrust(GetThrust(lBody.tas, atmo.Density(transform.position.y, true), atmo.Temperature(transform.position.y)));
+            lBody.AdjustThrust(GetThrust(lBody.tas, atmo.Density(atmo.Altitude(transform.position.y), true), atmo.Temperature(atmo.Altitude(transform.position.y))));
         }
     }
 

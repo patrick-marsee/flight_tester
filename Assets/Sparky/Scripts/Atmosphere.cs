@@ -6,7 +6,7 @@ public class Atmosphere : MonoBehaviour {
     [SerializeField]
     private float scale = 1; // meters per unit
     [SerializeField]
-    private float seaLevel = 0;
+    private float seaLevel = 0; // Y-axis position which equals 0m MSL.
     [SerializeField]
     private float pressureASL = 101.325f; // 1 atm. in kPa
     [SerializeField]
@@ -36,7 +36,7 @@ public class Atmosphere : MonoBehaviour {
 
     // Use this for initialization
     void Start () {
-        pressureConstant = (Physics.gravity.y * AIR_MOLAR_MASS * scale) / (GAS_CONSTANT * temperatureASL);
+        pressureConstant = (Physics.gravity.y * AIR_MOLAR_MASS) / (GAS_CONSTANT * temperatureASL);
         densityConstant = 1 / densityASL;
         tempLapseAtTropo = (temperatureASL - tropopauseTemp) / tropopauseAltitude;
         //print(pressureConstant);
@@ -46,6 +46,11 @@ public class Atmosphere : MonoBehaviour {
 	void Update () {
 	
 	}
+    
+    public float Altitude(float yPosition)
+    {
+        return (yPosition - seaLevel) * scale;
+    }
 
     public float Pressure(float altitude, bool atm = false) // returns the pressure at altitude in kPa (default) or atm.
     {
@@ -65,9 +70,8 @@ public class Atmosphere : MonoBehaviour {
 
     public float Temperature(float altitude)
     {
-        float alt = altitude - seaLevel; // true altitude, if sea level is defined as something other than 0 (perhaps -10000, @ scale = 1)
-        if (alt * scale < tropopauseAltitude - seaLevel)
-            return temperatureASL - alt * tempLapseAtTropo * scale;
+        if (altitude < tropopauseAltitude)
+            return temperatureASL - altitude * tempLapseAtTropo;
         else // mesopause coming soon!
             return tropopauseTemp;
     }
